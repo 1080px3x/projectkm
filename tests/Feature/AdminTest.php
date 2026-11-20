@@ -117,6 +117,26 @@ class AdminTest extends TestCase
         $this->assertDatabaseCount('chapter_images', 1);
     }
 
+    public function test_chapter_images_accept_urls(): void
+    {
+        $this->actingAs($this->admin());
+        $chapter = Chapter::firstOrFail();
+
+        Livewire::test(ImagesRelationManager::class, [
+            'ownerRecord' => $chapter,
+            'pageClass' => EditChapter::class,
+        ])
+            ->callTableAction('create', data: [
+                'image_url' => 'https://example.com/page-01.jpg',
+            ])
+            ->assertHasNoActionErrors();
+
+        $image = $chapter->images()->latest('id')->firstOrFail();
+
+        $this->assertSame('https://example.com/page-01.jpg', $image->image_path);
+        $this->assertSame('https://example.com/page-01.jpg', $image->url());
+    }
+
     public function test_dashboard_shows_chapter_widgets(): void
     {
         $this->actingAs($this->admin());
