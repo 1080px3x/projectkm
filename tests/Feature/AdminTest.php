@@ -126,7 +126,7 @@ class AdminTest extends TestCase
             'ownerRecord' => $chapter,
             'pageClass' => EditChapter::class,
         ])
-            ->callTableAction('create', data: [
+            ->callTableAction('addUrl', data: [
                 'image_url' => 'https://example.com/page-01.jpg',
             ])
             ->assertHasNoActionErrors();
@@ -146,7 +146,7 @@ class AdminTest extends TestCase
 
         Livewire::test(RecentChapters::class)
             ->assertSee('Chapter Terbaru')
-            ->assertCanSeeTableRecords(Chapter::latest('released_at')->limit(5)->get());
+            ->assertCanSeeTableRecords(Chapter::orderByDesc('released_at')->orderByDesc('id')->limit(5)->get());
     }
 
     public function test_comics_list_shows_records(): void

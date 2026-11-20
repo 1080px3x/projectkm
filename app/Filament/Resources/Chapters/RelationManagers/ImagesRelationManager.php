@@ -12,7 +12,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -30,18 +29,11 @@ class ImagesRelationManager extends RelationManager
         return $schema
             ->components([
                 FileUpload::make('image_path')
-                    ->label('Upload Gambar')
+                    ->label('Gambar')
                     ->image()
                     ->directory('chapters')
                     ->disk('public')
-                    ->helperText('Kosongkan jika memakai URL gambar.')
-                    ->required(fn (Get $get) => blank($get('image_url'))),
-                TextInput::make('image_url')
-                    ->label('URL Gambar')
-                    ->url()
-                    ->placeholder('https://...')
-                    ->helperText('Diutamakan jika diisi.')
-                    ->required(fn (Get $get) => blank($get('image_path'))),
+                    ->required(),
                 TextInput::make('order')
                     ->numeric()
                     ->default(fn () => (int) $this->getOwnerRecord()->images()->max('order') + 1),
@@ -68,19 +60,31 @@ class ImagesRelationManager extends RelationManager
             ->defaultSort('order')
             ->reorderable('order')
             ->headerActions([
-                CreateAction::make()
-                    ->using(function (array $data) {
-                        if ($url = trim((string) ($data['image_url'] ?? ''))) {
-                            $data['image_path'] = $url;
-                        }
+                Action::make('addUrl')
+                    ->label('Tambah URL')
+                    ->icon('heroicon-m-link')
+                    ->color('success')
+                    ->schema([
+                        TextInput::make('image_url')
+                            ->label('URL Gambar')
+                            ->url()
+                            ->required()
+                            ->placeholder('https://contoh.com/01.jpg'),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->default(fn () => (int) $this->getOwnerRecord()->images()->max('order') + 1),
+                    ])
+                    ->action(function (array $data) {
+                        $this->getOwnerRecord()->images()->create([
+                            'image_path' => $data['image_url'],
+                            'order' => $data['order'] ?? ((int) $this->getOwnerRecord()->images()->max('order') + 1),
+                        ]);
 
-                        unset($data['image_url']);
-
-                        return $this->getOwnerRecord()->images()->create($data);
+                        Notification::make()->success()->title('Gambar URL ditambahkan')->send();
                     }),
                 Action::make('bulkUrls')
-                    ->label('Tambah dari Banyak URL')
-                    ->icon('heroicon-m-link')
+                    ->label('Banyak URL')
+                    ->icon('heroicon-m-queue-list')
                     ->schema([
                         Textarea::make('urls')
                             ->label('Satu URL per baris')
@@ -108,6 +112,9 @@ class ImagesRelationManager extends RelationManager
                             ->title($urls->count().' gambar ditambahkan')
                             ->send();
                     }),
+                CreateAction::make()
+                    ->label('Upload Gambar')
+                    ->icon('heroicon-m-arrow-up-tray'),
             ])
             ->recordActions([
                 DeleteAction::make(),

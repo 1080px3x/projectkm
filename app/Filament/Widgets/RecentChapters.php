@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class RecentChapters extends TableWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -18,7 +18,7 @@ class RecentChapters extends TableWidget
     {
         return $table
             ->heading('Chapter Terbaru')
-            ->query(fn (): Builder => Chapter::query()->with('comic')->withCount('images')->latest('released_at')->limit(5))
+            ->query(fn (): Builder => Chapter::query()->with('comic')->withCount('images')->latest('released_at'))
             ->columns([
                 TextColumn::make('comic.title')
                     ->label('Komik')
@@ -39,6 +39,8 @@ class RecentChapters extends TableWidget
                     ->dateTime()
                     ->sortable(),
             ])
-            ->paginated(false);
+            ->defaultSort('released_at', 'desc')
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10]);
     }
 }
