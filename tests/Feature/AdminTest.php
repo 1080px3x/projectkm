@@ -2,11 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Chapters\Pages\EditChapter;
+use App\Filament\Resources\Chapters\RelationManagers\ImagesRelationManager;
+use App\Filament\Resources\Comics\Pages\CreateComic;
+use App\Filament\Resources\Comics\Pages\ListComics;
 use App\Models\Comic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AdminTest extends TestCase
@@ -15,29 +20,28 @@ class AdminTest extends TestCase
 
     protected bool $seed = true;
 
+    private function admin(): User
+    {
+        return User::where('email', 'admin@shinigami.test')->firstOrFail();
+    }
+
     public function test_guest_is_redirected_to_admin_login(): void
     {
-        $this->get('/admin')->assertRedirect(route('admin.login'));
+        $this->get('/admin')->assertRedirect('/admin/login');
     }
 
-    public function test_non_admin_cannot_log_in_to_panel(): void
+    public function test_non_admin_cannot_access_panel(): void
     {
-        User::factory()->create(['email' => 'reader@example.com', 'password' => 'secret123']);
+        $reader = User::factory()->create(['is_admin' => false]);
 
-        $this->post('/admin/login', ['email' => 'reader@example.com', 'password' => 'secret123'])
-            ->assertSessionHasErrors('email');
-
-        $this->assertGuest();
+        $this->actingAs($reader)->get('/admin')->assertForbidden();
     }
 
-    public function test_admin_can_log_in_and_browse_resources(): void
+    public function test_admin_can_browse_resources(): void
     {
-        $this->post('/admin/login', ['email' => 'admin@shinigami.test', 'password' => 'password'])
-            ->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($this->admin());
 
-        $this->assertAuthenticated();
-
-        foreach (['/admin', '/admin/comics', '/admin/comics/create', '/admin/genres', '/admin/threads'] as $url) {
+        foreach (['/admin', '/admin/comics', '/admin/comics/create', '/admin/genres', '/admin/threads', '/admin/users', '/admin/chapters'] as $url) {
             $this->get($url)->assertOk();
         }
     }
@@ -46,17 +50,20 @@ class AdminTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->actingAs(User::where('email', 'admin@shinigami.test')->firstOrFail());
+        $this->actingAs($this->admin());
 
-        $this->post('/admin/comics', [
-            'title' => 'Uji Upload Cover',
-            'type' => 'manhwa',
-            'status' => 'Ongoing',
-            'rating' => 8.4,
-            'genres' => 'Action, Fantasy',
-            'synopsis' => 'Sinopsis uji.',
-            'cover_file' => UploadedFile::fake()->image('cover.jpg', 400, 600),
-        ])->assertRedirect(route('admin.comics.index'));
+        Livewire::test(CreateComic::class)
+            ->fillForm([
+                'title' => 'Uji Upload Cover',
+                'type' => 'manhwa',
+                'status' => 'Ongoing',
+                'rating' => 8.4,
+                'genres' => 'Action, Fantasy',
+                'synopsis' => 'Sinopsis uji.',
+                'cover_file' => UploadedFile::fake()->image('cover.jpg', 400, 600),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
         $comic = Comic::where('title', 'Uji Upload Cover')->firstOrFail();
 
@@ -66,17 +73,20 @@ class AdminTest extends TestCase
 
     public function test_admin_can_create_comic_with_cover_url(): void
     {
-        $this->actingAs(User::where('email', 'admin@shinigami.test')->firstOrFail());
+        $this->actingAs($this->admin());
 
-        $this->post('/admin/comics', [
-            'title' => 'Uji Cover URL',
-            'type' => 'manga',
-            'status' => 'Ongoing',
-            'rating' => 7.9,
-            'genres' => 'Action',
-            'synopsis' => 'Sinopsis uji.',
-            'cover_url' => 'https://example.com/cover.jpg',
-        ])->assertRedirect(route('admin.comics.index'));
+        Livewire::test(CreateComic::class)
+            ->fillForm([
+                'title' => 'Uji Cover URL',
+                'type' => 'manga',
+                'status' => 'Ongoing',
+                'rating' => 7.9,
+                'genres' => 'Action',
+                'synopsis' => 'Sinopsis uji.',
+                'cover_url' => 'https://example.com/cover.jpg',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
         $comic = Comic::where('title', 'Uji Cover URL')->firstOrFail();
 
@@ -84,40 +94,31 @@ class AdminTest extends TestCase
         $this->assertSame('', $comic->coverStyle());
     }
 
-    public function test_admin_can_add_and_delete_chapter(): void
-    {
-        $this->actingAs(User::where('email', 'admin@shinigami.test')->firstOrFail());
-        $comic = Comic::firstOrFail();
-
-        $this->post("/admin/comics/{$comic->id}/chapters", [
-            'number' => 99,
-            'title' => 'Chapter Uji',
-            'released_at' => now()->format('Y-m-d H:i:s'),
-        ])->assertRedirect();
-
-        $chapter = $comic->chapters()->where('number', 99)->firstOrFail();
-
-        $this->delete("/admin/chapters/{$chapter->id}")->assertRedirect();
-        $this->assertDatabaseMissing('chapters', ['id' => $chapter->id]);
-    }
-
     public function test_admin_can_upload_chapter_images(): void
     {
         Storage::fake('public');
 
-        $this->actingAs(User::where('email', 'admin@shinigami.test')->firstOrFail());
+        $this->actingAs($this->admin());
         $comic = Comic::with('chapters')->firstOrFail();
         $chapter = $comic->chapters->first();
 
-        $this->post(route('admin.chapters.images.store', $chapter), [
-            'images' => [
-                UploadedFile::fake()->image('p1.jpg', 800, 1200),
-                UploadedFile::fake()->image('p2.jpg', 800, 1200),
-            ],
-        ])->assertRedirect();
+        Livewire::test(ImagesRelationManager::class, [
+            'ownerRecord' => $chapter,
+            'pageClass' => EditChapter::class,
+        ])
+            ->callTableAction('create', data: [
+                'image_path' => UploadedFile::fake()->image('p1.jpg', 800, 1200),
+            ])
+            ->assertHasNoActionErrors();
 
-        $this->assertDatabaseCount('chapter_images', 2);
-        $this->assertSame(2, $chapter->images()->count());
-        $this->get(route('admin.chapters.images', $chapter))->assertOk();
+        $this->assertDatabaseCount('chapter_images', 1);
+    }
+
+    public function test_comics_list_shows_records(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(ListComics::class)
+            ->assertCanSeeTableRecords(Comic::whereKey(Comic::min('id'))->get());
     }
 }

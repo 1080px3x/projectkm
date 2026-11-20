@@ -1,12 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\AuthController as AdminAuthController;
-use App\Http\Controllers\Admin\ChapterController as AdminChapterController;
-use App\Http\Controllers\Admin\ChapterImageController as AdminChapterImageController;
-use App\Http\Controllers\Admin\ComicController as AdminComicController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\GenreController as AdminGenreController;
-use App\Http\Controllers\Admin\ThreadController as AdminThreadController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\ChapterController;
 use App\Http\Controllers\ComicController;
@@ -50,36 +43,3 @@ Route::post('/komunitas', [CommunityController::class, 'store'])->name('communit
 
 Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard');
 Route::get('/bantuan', [PageController::class, 'help'])->name('help');
-
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::middleware('guest')->group(function () {
-        Route::get('login', [AdminAuthController::class, 'create'])->name('login');
-        Route::post('login', [AdminAuthController::class, 'store']);
-    });
-
-    Route::middleware('admin')->group(function () {
-        Route::post('logout', [AdminAuthController::class, 'destroy'])->name('logout');
-        Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
-
-        Route::get('comics', [AdminComicController::class, 'index'])->name('comics.index');
-        Route::get('comics/create', [AdminComicController::class, 'create'])->name('comics.create');
-        Route::post('comics', [AdminComicController::class, 'store'])->name('comics.store');
-        Route::get('comics/{comic}/edit', [AdminComicController::class, 'edit'])->name('comics.edit');
-        Route::put('comics/{comic}', [AdminComicController::class, 'update'])->name('comics.update');
-        Route::delete('comics/{comic}', [AdminComicController::class, 'destroy'])->name('comics.destroy');
-
-        Route::post('comics/{comic}/chapters', [AdminChapterController::class, 'store'])->name('chapters.store');
-        Route::put('chapters/{chapter}', [AdminChapterController::class, 'update'])->name('chapters.update');
-        Route::delete('chapters/{chapter}', [AdminChapterController::class, 'destroy'])->name('chapters.destroy');
-        Route::get('chapters/{chapter}/images', [AdminChapterImageController::class, 'index'])->name('chapters.images');
-        Route::post('chapters/{chapter}/images', [AdminChapterImageController::class, 'store'])->name('chapters.images.store');
-        Route::delete('chapter-images/{image}', [AdminChapterImageController::class, 'destroy'])->name('chapter-images.destroy');
-
-        Route::get('genres', [AdminGenreController::class, 'index'])->name('genres.index');
-        Route::post('genres', [AdminGenreController::class, 'store'])->name('genres.store');
-        Route::delete('genres/{genre}', [AdminGenreController::class, 'destroy'])->name('genres.destroy');
-
-        Route::get('threads', [AdminThreadController::class, 'index'])->name('threads.index');
-        Route::delete('threads/{thread}', [AdminThreadController::class, 'destroy'])->name('threads.destroy');
-    });
-});
