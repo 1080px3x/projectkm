@@ -17,38 +17,43 @@ class ComicsTable
         return $table
             ->columns([
                 ImageColumn::make('cover')
-                    ->label('Cover')
-                    ->height(60)
-                    ->width(44)
+                    ->label('')
+                    ->height(56)
+                    ->width(40)
                     ->checkFileExistence(false)
-                    ->getStateUsing(fn ($record) => $record->coverUrl() ?? asset('storage/'.$record->cover)),
+                    ->getStateUsing(fn ($record) => $record->coverUrl()),
                 TextColumn::make('title')
                     ->label('Judul')
+                    ->description(fn ($record) => $record->genres)
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
                 TextColumn::make('type')
+                    ->label('Tipe')
                     ->badge()
                     ->sortable(),
                 TextColumn::make('status')
+                    ->label('Status')
                     ->badge()
-                    ->color('success')
-                    ->sortable(),
-                TextColumn::make('rating')
-                    ->numeric(decimalPlaces: 1)
-                    ->sortable(),
+                    ->color(fn (string $state) => $state === 'Ongoing' ? 'success' : 'info'),
                 TextColumn::make('chapters_count')
                     ->label('Chapter')
                     ->counts('chapters')
                     ->badge()
-                    ->color('info'),
-                TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime()
+                    ->color('gray'),
+                TextColumn::make('rating')
+                    ->label('Rating')
+                    ->numeric(decimalPlaces: 1)
+                    ->sortable(),
+                TextColumn::make('updated_at')
+                    ->label('Diperbarui')
+                    ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')
+                    ->label('Tipe')
                     ->options([
                         'manhwa' => 'Manhwa',
                         'manhua' => 'Manhua',

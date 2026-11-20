@@ -22,19 +22,24 @@ class ImagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'images';
 
-    protected static ?string $title = 'Gambar Chapter';
+    protected static ?string $title = 'Halaman';
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
                 FileUpload::make('image_path')
-                    ->label('Gambar')
+                    ->label('Upload gambar')
                     ->image()
                     ->directory('chapters')
                     ->disk('public')
-                    ->required(),
+                    ->helperText('Atau isi URL di bawah.'),
+                TextInput::make('image_url')
+                    ->label('URL gambar')
+                    ->url()
+                    ->placeholder('https://contoh.com/01.jpg'),
                 TextInput::make('order')
+                    ->label('Urutan')
                     ->numeric()
                     ->default(fn () => (int) $this->getOwnerRecord()->images()->max('order') + 1),
             ]);
@@ -45,8 +50,8 @@ class ImagesRelationManager extends RelationManager
         return $table
             ->columns([
                 ImageColumn::make('image_path')
-                    ->label('Preview')
-                    ->height(80)
+                    ->label('Gambar')
+                    ->height(72)
                     ->getStateUsing(fn ($record) => $record->url()),
                 TextColumn::make('source')
                     ->label('Sumber')
@@ -60,30 +65,20 @@ class ImagesRelationManager extends RelationManager
             ->defaultSort('order')
             ->reorderable('order')
             ->headerActions([
-                Action::make('addUrl')
-                    ->label('Tambah URL')
-                    ->icon('heroicon-m-link')
-                    ->color('success')
-                    ->schema([
-                        TextInput::make('image_url')
-                            ->label('URL Gambar')
-                            ->url()
-                            ->required()
-                            ->placeholder('https://contoh.com/01.jpg'),
-                        TextInput::make('order')
-                            ->numeric()
-                            ->default(fn () => (int) $this->getOwnerRecord()->images()->max('order') + 1),
-                    ])
-                    ->action(function (array $data) {
-                        $this->getOwnerRecord()->images()->create([
-                            'image_path' => $data['image_url'],
-                            'order' => $data['order'] ?? ((int) $this->getOwnerRecord()->images()->max('order') + 1),
-                        ]);
+                CreateAction::make()
+                    ->label('Tambah Halaman')
+                    ->icon('heroicon-m-plus')
+                    ->using(function (array $data) {
+                        if ($url = trim((string) ($data['image_url'] ?? ''))) {
+                            $data['image_path'] = $url;
+                        }
 
-                        Notification::make()->success()->title('Gambar URL ditambahkan')->send();
+                        unset($data['image_url']);
+
+                        return $this->getOwnerRecord()->images()->create($data);
                     }),
                 Action::make('bulkUrls')
-                    ->label('Banyak URL')
+                    ->label('Tempel Banyak URL')
                     ->icon('heroicon-m-queue-list')
                     ->schema([
                         Textarea::make('urls')
@@ -109,12 +104,9 @@ class ImagesRelationManager extends RelationManager
 
                         Notification::make()
                             ->success()
-                            ->title($urls->count().' gambar ditambahkan')
+                            ->title($urls->count().' halaman ditambahkan')
                             ->send();
                     }),
-                CreateAction::make()
-                    ->label('Upload Gambar')
-                    ->icon('heroicon-m-arrow-up-tray'),
             ])
             ->recordActions([
                 DeleteAction::make(),

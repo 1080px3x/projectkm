@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use UnitEnum;
 
 class ComicResource extends Resource
 {
@@ -24,6 +25,10 @@ class ComicResource extends Resource
     protected static ?string $recordTitleAttribute = 'title';
 
     protected static ?string $navigationLabel = 'Komik';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Katalog';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'Komik';
 

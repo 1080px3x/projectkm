@@ -15,17 +15,20 @@ class ThreadsTable
         return $table
             ->columns([
                 TextColumn::make('title')
+                    ->label('Judul')
                     ->searchable()
-                    ->limit(50),
+                    ->limit(60)
+                    ->weight('bold'),
                 TextColumn::make('author_name')
                     ->label('Penulis')
                     ->searchable(),
                 TextColumn::make('body')
+                    ->label('Isi')
                     ->limit(60)
-                    ->toggleable(),
+                    ->placeholder('—'),
                 TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime()
+                    ->since()
                     ->sortable(),
             ])
             ->recordActions([

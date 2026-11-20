@@ -17,7 +17,7 @@ class ComicForm
     {
         return $schema
             ->components([
-                Section::make('Detail Komik')
+                Section::make('Informasi Komik')
                     ->schema([
                         TextInput::make('title')
                             ->label('Judul')
@@ -26,10 +26,12 @@ class ComicForm
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (?string $state, callable $set) => $set('slug', Str::slug((string) $state))),
                         TextInput::make('slug')
+                            ->label('Slug URL')
                             ->maxLength(150)
                             ->unique(Comic::class, 'slug', ignoreRecord: true)
-                            ->helperText('Otomatis dari judul, bisa diubah.'),
+                            ->helperText('Otomatis dari judul.'),
                         Select::make('type')
+                            ->label('Tipe')
                             ->options([
                                 'manhwa' => 'Manhwa',
                                 'manhua' => 'Manhua',
@@ -38,47 +40,57 @@ class ComicForm
                             ])
                             ->required()
                             ->default('manhwa'),
-                        TextInput::make('status')
+                        Select::make('status')
+                            ->label('Status')
+                            ->options([
+                                'Ongoing' => 'Ongoing',
+                                'Completed' => 'Completed',
+                                'Hiatus' => 'Hiatus',
+                            ])
                             ->required()
-                            ->default('Ongoing')
-                            ->maxLength(30),
+                            ->default('Ongoing'),
+                        TextInput::make('genres')
+                            ->label('Genre')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('Action, Fantasy')
+                            ->helperText('Pisahkan dengan koma.'),
                         TextInput::make('rating')
+                            ->label('Rating')
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(10)
                             ->step(0.1)
                             ->default(0),
-                        TextInput::make('genres')
-                            ->label('Genre (pisah koma)')
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('Action, Fantasy'),
                         Textarea::make('synopsis')
+                            ->label('Sinopsis')
                             ->required()
-                            ->rows(4)
+                            ->rows(5)
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
 
                 Section::make('Cover')
-                    ->description('Pilih salah satu: upload file, URL, atau gradient. Kosongkan untuk mempertahankan cover saat edit.')
+                    ->description('Upload file, atau isi URL, atau pakai gradient. Salah satu saja.')
                     ->schema([
                         FileUpload::make('cover_file')
                             ->label('Upload Cover')
                             ->image()
                             ->directory('covers')
-                            ->disk('public'),
+                            ->disk('public')
+                            ->helperText('Kosongkan jika memakai URL/gradient.'),
                         TextInput::make('cover_url')
                             ->label('URL Cover')
                             ->url()
                             ->maxLength(500)
                             ->placeholder('https://...'),
                         TextInput::make('cover_gradient')
-                            ->label('Gradient Cover')
+                            ->label('Gradient')
                             ->maxLength(500)
                             ->placeholder('linear-gradient(135deg,#4c1d95,#be123c)'),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->collapsible(),
             ]);
     }
 }

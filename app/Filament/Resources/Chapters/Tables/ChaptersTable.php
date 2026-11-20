@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Chapters\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -15,25 +17,28 @@ class ChaptersTable
     {
         return $table
             ->columns([
+                ImageColumn::make('cover')
+                    ->label('')
+                    ->height(40)
+                    ->width(28)
+                    ->checkFileExistence(false)
+                    ->getStateUsing(fn ($record) => optional($record->comic)->coverUrl()),
                 TextColumn::make('comic.title')
                     ->label('Komik')
                     ->searchable()
-                    ->sortable(),
+                    ->weight('bold'),
                 TextColumn::make('number')
                     ->label('Chapter')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('title')
-                    ->searchable()
-                    ->placeholder('—'),
+                    ->label('Judul')
+                    ->placeholder('—')
+                    ->limit(40),
                 TextColumn::make('images_count')
-                    ->label('Gambar')
+                    ->label('Halaman')
                     ->counts('images')
                     ->badge(),
-                TextColumn::make('released_at')
-                    ->label('Rilis')
-                    ->dateTime()
-                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('comic_id')
@@ -44,6 +49,9 @@ class ChaptersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('view')
+                    ->label('Lihat di situs')
+                    ->url(fn ($record) => route('chapters.show', [$record->comic->slug, $record->number])),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

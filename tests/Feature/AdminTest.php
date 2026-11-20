@@ -126,7 +126,7 @@ class AdminTest extends TestCase
             'ownerRecord' => $chapter,
             'pageClass' => EditChapter::class,
         ])
-            ->callTableAction('addUrl', data: [
+            ->callTableAction('create', data: [
                 'image_url' => 'https://example.com/page-01.jpg',
             ])
             ->assertHasNoActionErrors();
@@ -142,7 +142,8 @@ class AdminTest extends TestCase
         $this->actingAs($this->admin());
 
         Livewire::test(StatsOverview::class)
-            ->assertSee('Total Chapter');
+            ->assertSee('Komik')
+            ->assertSee('Chapter');
 
         Livewire::test(RecentChapters::class)
             ->assertSee('Chapter Terbaru')

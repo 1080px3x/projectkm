@@ -2,7 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Comics\ComicResource;
 use App\Models\Comic;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -15,36 +17,41 @@ class RecentComics extends TableWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $heading = 'Baru Ditambahkan';
-
     public function table(Table $table): Table
     {
         return $table
-            ->query(fn (): Builder => Comic::query()->latest())
+            ->heading('Komik Terbaru')
+            ->query(fn (): Builder => Comic::query()->withCount('chapters')->latest())
             ->columns([
                 ImageColumn::make('cover')
                     ->label('')
-                    ->height(40)
-                    ->width(30)
+                    ->height(48)
+                    ->width(34)
                     ->checkFileExistence(false)
-                    ->getStateUsing(fn ($record) => $record->coverUrl()),
+                    ->getStateUsing(fn (Comic $record) => $record->coverUrl()),
                 TextColumn::make('title')
                     ->label('Judul')
-                    ->description(fn (Comic $record): string => $record->slug)
-                    ->limit(35),
-                TextColumn::make('status')
+                    ->searchable()
+                    ->weight('bold'),
+                TextColumn::make('type')
+                    ->label('Tipe')
+                    ->badge(),
+                TextColumn::make('chapters_count')
+                    ->label('Chapter')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Ongoing' => 'success',
-                        'Completed' => 'info',
-                        default => 'gray',
-                    }),
+                    ->color('info'),
                 TextColumn::make('rating')
+                    ->label('Rating')
                     ->numeric(decimalPlaces: 1),
-                TextColumn::make('created_at')
-                    ->label('Ditambah')
-                    ->since()
-                    ->sortable(),
+                TextColumn::make('updated_at')
+                    ->label('Diperbarui')
+                    ->since(),
+            ])
+            ->recordActions([
+                Action::make('edit')
+                    ->label('Ubah')
+                    ->icon('heroicon-m-pencil-square')
+                    ->url(fn (Comic $record) => ComicResource::getUrl('edit', ['record' => $record])),
             ])
             ->defaultSort('created_at', 'desc')
             ->defaultPaginationPageOption(5)
