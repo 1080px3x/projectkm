@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Filament\Resources\Chapters\Pages\EditChapter;
 use App\Filament\Resources\Chapters\RelationManagers\ImagesRelationManager;
 use App\Filament\Resources\Comics\Pages\CreateComic;
+use App\Filament\Resources\Comics\Pages\EditComic;
 use App\Filament\Resources\Comics\Pages\ListComics;
+use App\Filament\Resources\Comics\RelationManagers\ChaptersRelationManager;
 use App\Filament\Widgets\RecentChapters;
 use App\Filament\Widgets\StatsOverview;
 use App\Models\Chapter;
@@ -135,6 +137,35 @@ class AdminTest extends TestCase
 
         $this->assertSame('https://example.com/page-01.jpg', $image->image_path);
         $this->assertSame('https://example.com/page-01.jpg', $image->url());
+    }
+
+    public function test_chapter_created_with_uploaded_images_and_urls(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin());
+        $comic = Comic::with('chapters')->firstOrFail();
+
+        Livewire::test(ChaptersRelationManager::class, [
+            'ownerRecord' => $comic,
+            'pageClass' => EditComic::class,
+        ])
+            ->callTableAction('create', data: [
+                'number' => 777,
+                'title' => 'Chapter Uji Gambar',
+                'released_at' => now()->format('Y-m-d H:i:s'),
+                'images' => [
+                    UploadedFile::fake()->image('a.jpg', 800, 1200),
+                    UploadedFile::fake()->image('b.jpg', 800, 1200),
+                ],
+                'image_urls' => "https://example.com/x1.jpg\nhttps://example.com/x2.jpg",
+            ])
+            ->assertHasNoActionErrors();
+
+        $chapter = $comic->chapters()->where('number', 777)->firstOrFail();
+
+        $this->assertSame(4, $chapter->images()->count());
+        $this->assertSame(2, $chapter->images()->where('image_path', 'like', 'http%')->count());
     }
 
     public function test_dashboard_shows_chapter_widgets(): void
