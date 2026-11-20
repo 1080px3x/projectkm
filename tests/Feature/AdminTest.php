@@ -6,6 +6,9 @@ use App\Filament\Resources\Chapters\Pages\EditChapter;
 use App\Filament\Resources\Chapters\RelationManagers\ImagesRelationManager;
 use App\Filament\Resources\Comics\Pages\CreateComic;
 use App\Filament\Resources\Comics\Pages\ListComics;
+use App\Filament\Widgets\RecentChapters;
+use App\Filament\Widgets\StatsOverview;
+use App\Models\Chapter;
 use App\Models\Comic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -112,6 +115,18 @@ class AdminTest extends TestCase
             ->assertHasNoActionErrors();
 
         $this->assertDatabaseCount('chapter_images', 1);
+    }
+
+    public function test_dashboard_shows_chapter_widgets(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(StatsOverview::class)
+            ->assertSee('Total Chapter');
+
+        Livewire::test(RecentChapters::class)
+            ->assertSee('Chapter Terbaru')
+            ->assertCanSeeTableRecords(Chapter::latest('released_at')->limit(5)->get());
     }
 
     public function test_comics_list_shows_records(): void
